@@ -75,7 +75,7 @@ def main():
     )
 
     # Use repo-root-relative path
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
     output_path = os.path.join(repo_root, "artifacts/klee/rewrite", f"{basename}.c")
 
     write_transformed_code(output_path, rewritten_code)

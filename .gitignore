@@ -3,4 +3,4 @@ __pycache__/
 *.ktest
 *.gcov
 *.o
-tcc-src
+.env

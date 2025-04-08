@@ -27,7 +27,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Compute absolute repo root relative to this script
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
     base_outdir = os.path.join(repo_root, "artifacts/klee/klee_output")
     os.makedirs(base_outdir, exist_ok=True)  # Ensure base klee_output dir exists
 
