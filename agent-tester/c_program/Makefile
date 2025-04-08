@@ -1,36 +1,49 @@
+# Compiler and toolchain definitions
 CC=clang
-SRC_DIR=src
-INC_DIR=include
-BUILD_DIR=build
-CFLAGS=-Wall -Wextra -I$(INC_DIR)
+AFL_CC=afl-clang-fast
+KLEE_CC=clang
+CFLAGS=-O0 -g
+SRC=src/proof_of_concept.c
 
-SRC=$(wildcard $(SRC_DIR)/*.c)
-OBJ=$(SRC:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+# Output directories relative to agent-tester
+LLVM_DIR=../artifacts/klee/llvm
+REWRITE_DIR=../artifacts/klee/rewrite
+AFL_DIR=../artifacts/afl/afl_output
+BIN_DIR=../artifacts/binary
 
-TARGET=tcc_test
+# Ensure output dirs exist
+$(LLVM_DIR) $(AFL_DIR) $(BIN_DIR):
+	mkdir -p $@
 
-# ---- Default build ----
-all: $(TARGET)
+# LLVM bitcode output (for original proof.c)
+$(LLVM_DIR)/proof.bc: $(SRC) | $(LLVM_DIR)
+	$(KLEE_CC) -emit-llvm -c -g $(SRC) -o $@
 
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) $^ -o $@
+# AFL binary (instrumented for fuzzing)
+$(AFL_DIR)/proof_afl: $(SRC) | $(AFL_DIR)
+	$(AFL_CC) $(CFLAGS) $(SRC) -o $@
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Native binary (regular debug build)
+$(BIN_DIR)/proof: $(SRC) | $(BIN_DIR)
+	$(CC) $(CFLAGS) $(SRC) -o $@
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+# === New generic rule: build LLVM .bc from any .c file in REWRITE_DIR ===
+# Example: make ../artifacts/klee/llvm/rewrite_test.bc
+$(LLVM_DIR)/%.bc: $(REWRITE_DIR)/%.c | $(LLVM_DIR)
+	$(KLEE_CC) -emit-llvm -c -g $< -o $@
 
-# ---- Build with AFL instrumentation ----
-afl: export CC=afl-clang-fast
-afl: clean all
+# === Top-level build targets ===
+.PHONY: all proof.bc proof_afl proof
+all: proof.bc proof_afl proof
 
-# ---- Build for KLEE (LLVM bitcode) ----
-bc:
-	clang -emit-llvm -c -g $(SRC) -I$(INC_DIR) -o $(BUILD_DIR)/main.bc
+proof.bc: $(LLVM_DIR)/proof.bc
+proof_afl: $(AFL_DIR)/proof_afl
+proof: $(BIN_DIR)/proof
 
-# ---- Clean ----
+# === Clean all build artifacts ===
+.PHONY: clean
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
-
-.PHONY: all afl bc clean
+	rm -f $(LLVM_DIR)/*.bc \
+	      $(AFL_DIR)/* \
+	      $(BIN_DIR)/* \
+		  ${REWRITE_DIR}/*

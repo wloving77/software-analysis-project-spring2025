@@ -37,4 +37,6 @@ RUN pip3 install --no-cache-dir langchain openai tqdm
 RUN mkdir /workspace
 WORKDIR /workspace
 
+ENV PYTHONPATH="/workspace/agent-tester:${PYTHONPATH}"
+
 CMD ["/bin/bash"]
