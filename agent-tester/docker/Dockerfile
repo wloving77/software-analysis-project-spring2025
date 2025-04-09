@@ -29,14 +29,15 @@ RUN git clone https://github.com/AFLplusplus/AFLplusplus.git /afl && \
 # ------------------------------
 # 3. Install Python dependencies
 # ------------------------------
-RUN pip3 install --no-cache-dir langchain openai tqdm
+
+COPY requirements.txt requirements.txt
+
+RUN pip3 install -r requirements.txt
 
 # ------------------------------
 # 4. Set up working directory
 # ------------------------------
 RUN mkdir /workspace
 WORKDIR /workspace
-
-ENV PYTHONPATH="/workspace/agent-tester:${PYTHONPATH}"
 
 CMD ["/bin/bash"]

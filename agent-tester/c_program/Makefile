@@ -8,8 +8,8 @@ SRC=src/proof_of_concept.c
 # Output directories relative to agent-tester
 LLVM_DIR=../artifacts/klee/llvm
 REWRITE_DIR=../artifacts/klee/rewrite
-AFL_DIR=../artifacts/afl/afl_output
-BIN_DIR=../artifacts/binary
+AFL_DIR=../artifacts/afl/compiled_afl
+BIN_DIR=../artifacts/standard_binary
 
 # Ensure output dirs exist
 $(LLVM_DIR) $(AFL_DIR) $(BIN_DIR):
@@ -36,7 +36,7 @@ $(LLVM_DIR)/%.bc: $(REWRITE_DIR)/%.c | $(LLVM_DIR)
 .PHONY: all proof.bc proof_afl proof
 all: proof.bc proof_afl proof
 
-proof.bc: $(LLVM_DIR)/proof.bc
+proof.bc: $(LLVM_DIR)/proof_of_concept_klee.bc
 proof_afl: $(AFL_DIR)/proof_afl
 proof: $(BIN_DIR)/proof
 

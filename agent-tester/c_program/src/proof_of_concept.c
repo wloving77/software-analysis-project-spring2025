@@ -1,18 +1,54 @@
-// c_program/src/test_target.c
 #include <stdio.h>
 #include <string.h>
 
 int main(int argc, char* argv[]) {
-    char buf[100];
+    char buf[100] = {0};
+
     if (argc > 1) {
-        strncpy(buf, argv[1], 100);
-        if (strcmp(buf, "secret") == 0) {
-            printf("You found the secret path!\n");
-        } else {
-            printf("Try again.\n");
+        FILE *f = fopen(argv[1], "r");
+        if (f) {
+            fread(buf, 1, sizeof(buf) - 1, f);
+            fclose(f);
         }
+
+        // Normalize newline if needed
+        buf[strcspn(buf, "\r\n")] = '\0';
+
+        // Multiple clearly separated branches
+        if (strcmp(buf, "secret") == 0) {
+            puts("Branch: secret");
+            return 1;
+        }
+
+        if (strcmp(buf, "admin") == 0) {
+            puts("Branch: admin");
+            return 2;
+        }
+
+        if (strcmp(buf, "debug") == 0) {
+            puts("Branch: debug");
+            return 3;
+        }
+
+        if (strcmp(buf, "crash") == 0) {
+            puts("Branch: crashing");
+            char *x = NULL;
+            *x = 42;  // Intentional crash
+            return 4;
+        }
+
+        if (strncmp(buf, "key=", 4) == 0) {
+            puts("Branch: config key provided");
+            if (strchr(buf, '!')) {
+                puts("Bonus config feature!");
+            }
+            return 5;
+        }
+
+        puts("Branch: fallback/default");
     } else {
-        printf("No input provided.\n");
+        puts("Branch: no input file");
     }
+
     return 0;
 }
