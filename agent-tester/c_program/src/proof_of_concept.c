@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>  // for getenv
 
 int main(int argc, char* argv[]) {
     char buf[100] = {0};
@@ -32,8 +33,13 @@ int main(int argc, char* argv[]) {
 
         if (strcmp(buf, "crash") == 0) {
             puts("Branch: crashing");
-            char *x = NULL;
-            *x = 42;  // Intentional crash
+
+            // ✅ Only crash if the env variable is explicitly set
+            if (getenv("AFL_ALLOW_CRASH")) {
+                char *x = NULL;
+                *x = 42;  // Intentional crash
+            }
+
             return 4;
         }
 
