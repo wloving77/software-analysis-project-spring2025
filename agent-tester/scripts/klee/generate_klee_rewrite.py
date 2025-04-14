@@ -31,10 +31,12 @@ def build_prompt(source_code):
         "You are modifying C code to prepare it for symbolic execution using the KLEE tool.\n"
         "Rewrite the following C program so that all user inputs (via stdin, argv, fgets, etc.) "
         "are made symbolic using `klee_make_symbolic`. Add `#include <klee/klee.h>` if needed.\n"
-        "Replace any concrete input statements with symbolic declarations. Do not change the logic.\n"
+        "Replace any concrete input statements with symbolic declarations.\n"
+        "Use `\"input\"` as the symbolic variable name in all `klee_make_symbolic` calls.\n"
         "Return ONLY the full modified C code.\n"
         "Thank you!"
     )
+
     return f"{system_instruction}\n\n{source_code}"
 
 

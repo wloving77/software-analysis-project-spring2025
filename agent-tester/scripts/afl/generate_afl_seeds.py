@@ -31,14 +31,20 @@ def read_c_programs_with_filenames(src_dir: str) -> list[tuple[str, str]]:
 
 def format_prompt(programs: list[tuple[str, str]], num_seeds: int) -> str:
     header = f"""
-        You are helping fuzz a C program. The codebase consists of several C files listed below.
+    You are helping fuzz a C program. The codebase consists of several C files listed below.
 
-        Please generate {num_seeds} diverse input strings that may trigger different execution paths or edge cases in the program.
-        Return the seeds as plain text only, each separated by a line with only the delimiter: `{SEED_DELIMITER}`.
-        Do not include explanations or formatting. Just the input strings.
+    Please generate {num_seeds} diverse input strings that may trigger different execution paths or edge cases in the program.
+    - Inputs should be realistic: valid configuration strings, commands, or identifiers.
+    - Avoid empty strings, raw binary, and clearly invalid inputs.
+    - Return only inputs that are likely to be *accepted* by the program and not cause immediate failure.
+    - Examples: "admin", "key=value!", "debug", "config1", etc.
 
-        C programs:
-        """
+    Return the seeds as plain text only, each separated by a line with only the delimiter: `{SEED_DELIMITER}`.
+    Do not include explanations or formatting. Just the input strings.
+
+    C programs:
+    """
+
     program_sections = []
     for filename, content in programs:
         program_sections.append(f"""{filename}:\n\"\"\"\n{content}\n\"\"\"""")

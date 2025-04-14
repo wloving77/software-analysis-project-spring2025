@@ -22,7 +22,7 @@ SEEDS=5
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     --iterations) ITERATIONS="$2"; shift ;;
-    --seeds-per-round) SEEDS="$2"; shift ;;
+    --seeds-per-round|--seeds) SEEDS="$2"; shift ;;
     *) echo "[!] Unknown parameter passed: $1"; exit 1 ;;
   esac
   shift
