@@ -32,7 +32,7 @@ def build_prompt(source_code):
         "Rewrite the following C program so that all user inputs (via stdin, argv, fgets, etc.) "
         "are made symbolic using `klee_make_symbolic`. Add `#include <klee/klee.h>` if needed.\n"
         "Replace any concrete input statements with symbolic declarations.\n"
-        "Use `\"input\"` as the symbolic variable name in all `klee_make_symbolic` calls.\n"
+        'Use `"input_1, input_2 ..."` as the symbolic variable name in all `klee_make_symbolic` calls.\n'
         "Return ONLY the full modified C code.\n"
         "Thank you!"
     )

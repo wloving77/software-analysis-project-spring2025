@@ -1,9 +1,10 @@
 # === Compiler and toolchain definitions ===
-CC=clang
+CC=gcc
 AFL_CC=afl-clang-fast
 KLEE_CC=clang
 CFLAGS=-O0 -g
-SRC=src/proof_of_concept.c
+SRC=src/mini_qsort.c
+SRC_NAME=$(basename $(notdir $(SRC)))
 
 # === Output directories ===
 LLVM_DIR=../artifacts/klee/llvm
@@ -16,36 +17,35 @@ $(LLVM_DIR) $(AFL_DIR) $(BIN_DIR):
 	mkdir -p $@
 
 # === LLVM bitcode output for KLEE from rewritten code ===
-# Usage: make ../artifacts/klee/llvm/proof_of_concept_klee.bc
 $(LLVM_DIR)/%.bc: $(REWRITE_DIR)/%.c | $(LLVM_DIR)
 	$(KLEE_CC) -emit-llvm -c -g $< -o $@
 
-# === Build LLVM bitcode from original proof_of_concept ===
-$(LLVM_DIR)/proof.bc: $(SRC) | $(LLVM_DIR)
+# === Build LLVM bitcode from original source ===
+$(LLVM_DIR)/$(SRC_NAME).bc: $(SRC) | $(LLVM_DIR)
 	$(KLEE_CC) -emit-llvm -c -g $(SRC) -o $@
 
 # === AFL-instrumented binary ===
-$(AFL_DIR)/proof_of_concept: $(SRC) | $(AFL_DIR)
+$(AFL_DIR)/$(SRC_NAME): $(SRC) | $(AFL_DIR)
 	$(AFL_CC) $(CFLAGS) $(SRC) -o $@
 
 # === Native binary (non-instrumented debug build) ===
-$(BIN_DIR)/proof: $(SRC) | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(SRC) -o $@
+$(BIN_DIR)/$(SRC_NAME): $(SRC) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -fprofile-arcs -ftest-coverage $(SRC) -o $@
 
 # === Top-level build targets ===
-.PHONY: all proof.bc proof_afl proof
+.PHONY: all klee_bitcode afl_bin native_bin
 
-all: proof.bc proof_afl proof
+all: klee_bitcode afl_bin native_bin
 
-proof.bc: $(LLVM_DIR)/proof_of_concept_klee.bc
-proof_afl: $(AFL_DIR)/proof_of_concept
-proof: $(BIN_DIR)/proof
+klee_bitcode: $(LLVM_DIR)/$(SRC_NAME).bc
+afl_bin: $(AFL_DIR)/$(SRC_NAME)
+native_bin: $(BIN_DIR)/$(SRC_NAME)
 
 # === Run the binary with a test file ===
 .PHONY: test
-test: $(AFL_DIR)/proof_of_concept
+test: $(AFL_DIR)/$(SRC_NAME)
 	@echo "secret" > test_input.txt
-	-$(AFL_DIR)/proof_of_concept test_input.txt
+	-$(AFL_DIR)/$(SRC_NAME) test_input.txt
 
 # === Clean all build artifacts ===
 .PHONY: clean
