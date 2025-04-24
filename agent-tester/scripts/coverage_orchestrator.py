@@ -2,11 +2,22 @@ import os
 import sys
 from pathlib import Path
 import subprocess
-from analyzer import extract_all_klee_inputs, extract_all_afl_inputs
+import argparse
+import re
+from klee.ktest import KTest
 
+""" This is more or less the ground truth, this is where the model gets feedback on how fuzzing, symbolic, and raw test generation are performing """
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SRC_DIR = REPO_ROOT / "c_program/src"
+parser = argparse.ArgumentParser(description="Orchestrate coverage evaluation")
+parser.add_argument(
+    "--src-dir",
+    type=str,
+    required=True,
+    help="Path to directory containing the C source file",
+)
+args = parser.parse_args()
+SRC_DIR = Path(args.src_dir).resolve()
 KLEE_OUTPUT_DIR = REPO_ROOT / "artifacts/klee/klee_output"
 AFL_OUTPUT_DIR = REPO_ROOT / "artifacts/afl/output"
 BINARY_PATH = REPO_ROOT / "artifacts/standard_binary/mini_qsort"
@@ -17,6 +28,65 @@ GCOV_REPORT_DIR = REPO_ROOT / "artifacts/coverage/coverage_report"
 # Ensure report directories exist
 GCDA_DIR.mkdir(parents=True, exist_ok=True)
 GCOV_REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+import os
+from pathlib import Path
+import subprocess
+import re
+from klee.ktest import KTest
+
+
+def extract_all_klee_inputs(root_dir):
+    inputs = []
+    for subdir in Path(root_dir).resolve().glob("run_*"):
+        for ktest in subdir.rglob("*.ktest"):
+            print(f"[KLEE] Found KTest file: {ktest}")
+            try:
+                kt = KTest.fromfile(str(ktest))
+                input_objects = {}
+
+                for name, data in kt.objects:
+                    match = re.fullmatch(r"input_(\d+)", name)
+                    if match:
+                        index = int(match.group(1))
+                        input_objects[index] = data
+
+                if not input_objects:
+                    continue
+
+                input_strs = []
+                for index in sorted(input_objects):
+                    data = input_objects[index]
+                    for i in range(0, len(data), 4):
+                        val = int.from_bytes(
+                            data[i : i + 4], byteorder="little", signed=True
+                        )
+                        input_strs.append(str(val))
+
+                inputs.append(" ".join(input_strs))
+            except Exception as e:
+                print(f"[!] Failed to parse {ktest}: {e}")
+    return inputs
+
+
+def extract_all_afl_inputs(root_dir):
+    inputs = []
+    for subdir in Path(root_dir).resolve().glob("run_*"):
+        queue_dir = subdir / "default/queue"
+        if not queue_dir.exists():
+            continue
+        for testcase in queue_dir.iterdir():
+            if testcase.is_file():
+                try:
+                    inputs.append(testcase.read_text(errors="ignore"))
+                except Exception as e:
+                    print(f"[!] Could not read {testcase}: {e}")
+    return inputs
+
+
+def compile_gcov_binary():
+    print("[*] Compiling gcov-instrumented binary...")
+    subprocess.run(["make", "gcov_bin"], cwd=REPO_ROOT / "c_program", check=True)
 
 
 def reset_coverage_data():
@@ -43,22 +113,28 @@ def run_with_input(input_str):
 
 
 def generate_gcov_report():
+    # Find the first .c file in the src directory
+    c_files = list(SRC_DIR.glob("*.c"))
+    if not c_files:
+        raise FileNotFoundError(f"No .c file found in {SRC_DIR}")
+    c_file = c_files[0]
+
+    base_name = c_file.stem
+
     # Ensure .gcno is present in coverage_data
-    original_gcno = BINARY_PATH.parent / "mini_qsort.gcno"
+    original_gcno = BINARY_PATH.parent / f"{base_name}.gcno"
     if original_gcno.exists():
-        dest_gcno = GCDA_DIR / "mini_qsort.gcno"
+        dest_gcno = GCDA_DIR / f"{base_name}.gcno"
         dest_gcno.write_bytes(original_gcno.read_bytes())
 
     # Ensure .gcda is present in coverage_data
-    original_gcda = BINARY_PATH.parent / "mini_qsort.gcda"
+    original_gcda = BINARY_PATH.parent / f"{base_name}.gcda"
     if original_gcda.exists():
-        dest_gcda = GCDA_DIR / "mini_qsort.gcda"
+        dest_gcda = GCDA_DIR / f"{base_name}.gcda"
         dest_gcda.write_bytes(original_gcda.read_bytes())
 
-    c_file = SRC_DIR / "mini_qsort.c"
-
     # Copy source file into report directory so gcov can annotate it
-    copied_src = GCOV_REPORT_DIR / "src" / "mini_qsort.c"
+    copied_src = GCOV_REPORT_DIR / "src" / c_file.name
     copied_src.parent.mkdir(parents=True, exist_ok=True)
     if not copied_src.exists():
         copied_src.write_bytes(c_file.read_bytes())
@@ -67,6 +143,7 @@ def generate_gcov_report():
 
 
 if __name__ == "__main__":
+    compile_gcov_binary()
     print("[*] Resetting coverage data...")
     reset_coverage_data()
 
@@ -85,4 +162,4 @@ if __name__ == "__main__":
     print("[*] Generating gcov report...")
     generate_gcov_report()
 
-    print("[✔] Done! See coverage report in artifacts/coverage_report/")
+    print(f"[✔] Done! See coverage report in {GCOV_REPORT_DIR}")

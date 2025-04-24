@@ -3,8 +3,10 @@ import os
 import argparse
 import google.generativeai as genai
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv("../.env")
+ROOT_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT_DIR / ".env")
 
 
 def init_gemini():
@@ -34,7 +36,8 @@ def build_prompt(source_code):
         "Replace any concrete input statements with symbolic declarations.\n"
         'Use `"input_1, input_2 ..."` as the symbolic variable name in all `klee_make_symbolic` calls.\n'
         "Return ONLY the full modified C code.\n"
-        "Thank you!"
+        "It is also important that you only use Klee assumptions for things that make sense to be symbolically tested \n"
+        "Avoid file inputs or other external dependencies.\n"
     )
 
     return f"{system_instruction}\n\n{source_code}"

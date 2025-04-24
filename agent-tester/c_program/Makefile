@@ -33,13 +33,17 @@ $(BIN_DIR)/$(SRC_NAME): $(SRC) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -fprofile-arcs -ftest-coverage $(SRC) -o $@
 
 # === Top-level build targets ===
-.PHONY: all klee_bitcode afl_bin native_bin
+.PHONY: all klee_bitcode afl_bin native_bin gcov_bin
 
 all: klee_bitcode afl_bin native_bin
 
 klee_bitcode: $(LLVM_DIR)/$(SRC_NAME).bc
 afl_bin: $(AFL_DIR)/$(SRC_NAME)
 native_bin: $(BIN_DIR)/$(SRC_NAME)
+
+# === GCOV-instrumented binary for coverage ===
+.PHONY: gcov_bin
+gcov_bin: $(BIN_DIR)/$(SRC_NAME)
 
 # === Run the binary with a test file ===
 .PHONY: test

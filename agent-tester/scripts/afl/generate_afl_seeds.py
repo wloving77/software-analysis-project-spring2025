@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-load_dotenv("../.env")
+load_dotenv(ROOT_DIR / ".env")
 
 SEED_DELIMITER = "---"
 
@@ -37,10 +37,19 @@ def format_prompt(programs: list[tuple[str, str]], num_seeds: int) -> str:
     - Inputs should be realistic: valid configuration strings, commands, or identifiers.
     - Avoid empty strings, raw binary, and clearly invalid inputs.
     - Return only inputs that are likely to be *accepted* by the program and not cause immediate failure.
-    - Examples: "admin", "key=value!", "debug", "config1", etc.
 
     Return the seeds as plain text only, each separated by a line with only the delimiter: `{SEED_DELIMITER}`.
     Do not include explanations or formatting. Just the input strings.
+    
+    Example Format: 
+    
+    {SEED_DELIMITER}
+    seed 1
+    {SEED_DELIMITER}
+    seed 2
+    {SEED_DELIMITER}
+
+    Please format individual seeds as the program would require via file input.
 
     C programs:
     """
@@ -50,8 +59,6 @@ def format_prompt(programs: list[tuple[str, str]], num_seeds: int) -> str:
         program_sections.append(f"""{filename}:\n\"\"\"\n{content}\n\"\"\"""")
 
     final_prompt = header.strip() + "\n\n" + "\n\n".join(program_sections)
-
-    # print("\n\n" + final_prompt + "\n\n")
 
     return final_prompt
 

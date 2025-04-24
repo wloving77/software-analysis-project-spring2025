@@ -45,7 +45,7 @@ def run_klee_on_bc(rewrite_name: str):
     )
 
 
-def full_pipeline_for_all():
+def full_klee_pipeline():
     src_files = list(SRC_DIR.glob("*.c"))
     if not src_files:
         print("❌ No .c files found in c_program/src/")
@@ -66,4 +66,4 @@ def full_pipeline_for_all():
 
 
 if __name__ == "__main__":
-    full_pipeline_for_all()
+    full_klee_pipeline()

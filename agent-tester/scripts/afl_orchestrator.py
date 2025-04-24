@@ -2,14 +2,25 @@ import os
 import subprocess
 from pathlib import Path
 from dotenv import load_dotenv
-
-load_dotenv(".env")
+import argparse
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = REPO_ROOT / "c_program/src"
 BIN_DIR = REPO_ROOT / "artifacts/afl/compiled_afl"
 SEED_DIR = REPO_ROOT / "artifacts/afl/generated_seeds"
-NUM_SEEDS = 10
+
+parser = argparse.ArgumentParser(description="Run AFL fuzzing pipeline")
+parser.add_argument(
+    "--num-seeds", type=int, default=10, help="Number of AFL seed inputs to generate"
+)
+parser.add_argument(
+    "--afl-runtime", type=int, default=60, help="Maximum runtime for AFL in seconds"
+)
+args = parser.parse_args()
+NUM_SEEDS = args.num_seeds
+AFL_RUNTIME = args.afl_runtime
+
+load_dotenv(".env")
 
 
 def run(cmd, cwd=None):
@@ -32,8 +43,8 @@ def generate_afl_seeds():
 
 def compile_afl_binary():
     print(f"[2] Compiling AFL-instrumented binary...")
-    target = "../artifacts/afl/compiled_afl"
-    run(["make", target], cwd=REPO_ROOT / "c_program")
+    # target = "../artifacts/afl/compiled_afl"
+    run(["make", "afl_bin"], cwd=REPO_ROOT / "c_program")
 
 
 def find_latest_binary(directory: Path) -> Path:
@@ -61,7 +72,7 @@ def run_afl_fuzzer(binary_path: Path):
             "--seeds",
             str(SEED_DIR),
             "--max-runtime",
-            "60",
+            str(AFL_RUNTIME),
         ],
         cwd=REPO_ROOT,
     )
