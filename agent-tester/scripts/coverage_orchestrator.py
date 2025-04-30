@@ -102,6 +102,7 @@ def run_with_input(input_str):
             [str(BINARY_PATH), str(input_file)],
             check=True,
             timeout=3,
+            stdout=subprocess.DEVNULL,  # suppress stdout
         )
     except subprocess.CalledProcessError as e:
         print(f"[!] Binary exited non-zero: {e}")
@@ -139,6 +140,11 @@ def generate_gcov_report():
         copied_src.write_bytes(c_file.read_bytes())
 
     subprocess.run(["gcov", "-o", str(GCDA_DIR), str(c_file)], cwd=GCOV_REPORT_DIR)
+
+    # Print contents of the generated .gcov file
+    for gcov_file in GCOV_REPORT_DIR.glob("*.gcov"):
+        print(f"\n[GCOV] Contents of {gcov_file.name}:\n")
+        print(gcov_file.read_text())
 
 
 if __name__ == "__main__":
