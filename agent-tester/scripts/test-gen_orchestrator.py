@@ -5,7 +5,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT_DIR / ".env")
 
 logging.basicConfig(level=logging.INFO, format="[*] %(message)s")
@@ -19,18 +19,18 @@ def init_gemini():
     return genai.GenerativeModel("gemini-2.0-flash")
 
 
-def generate_tests_with_gemini(num_seeds=10):
-    src_dir = Path(__file__).resolve().parents[2] / "c_program/src"
-    artifact_dir = Path(__file__).resolve().parents[2] / "artifacts/llm-testgen"
+def generate_tests_with_gemini(num_tests=10):
+    src_dir = ROOT_DIR / "c_program/src"
+    artifact_dir = ROOT_DIR / "artifacts/llm-testgen"
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
     c_files = list(src_dir.glob("*.c"))
     if not c_files:
         raise FileNotFoundError(f"No .c file found in {src_dir}")
-    logging.info(f"Found {len(c_files)} C files. Generating {num_seeds} test cases...")
+    logging.info(f"Found {len(c_files)} C files. Generating {num_tests} test cases...")
     program_text = "\n\n----\n\n".join(file.read_text() for file in c_files)
 
-    NUM_SEEDS = num_seeds
+    NUM_SEEDS = num_tests
     SEED_DELIMITER = "----"
 
     header = f"""
@@ -52,9 +52,7 @@ def generate_tests_with_gemini(num_seeds=10):
     test 2
     {SEED_DELIMITER}
 
-    Format each input as it would be passed via stdin to the compiled program.
-
-    Do not label the inputs or describe them in any way. We will be using your output programmatically so this is important.
+    Do not label the inputs or describe them in any way. We will be using your output programmatically.
 
     C programs:
     """
@@ -70,7 +68,6 @@ def generate_tests_with_gemini(num_seeds=10):
         logging.info(f"Writing test case {i:03d}")
         test_file = artifact_dir / f"test_{i:03d}.txt"
         test_file.write_text(case + "\n")
-
     print(f"[✔] {len(test_cases)} test cases written to {artifact_dir}")
 
 
@@ -79,7 +76,7 @@ if __name__ == "__main__":
         description="Generate LLM test inputs for a C program"
     )
     parser.add_argument(
-        "--num-seeds", type=int, default=10, help="Number of test cases to generate"
+        "--num-tests", type=int, default=10, help="Number of test cases to generate"
     )
     args = parser.parse_args()
-    generate_tests_with_gemini(num_seeds=args.num_seeds)
+    generate_tests_with_gemini(num_tests=args.num_tests)

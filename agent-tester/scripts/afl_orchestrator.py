@@ -9,17 +9,6 @@ SRC_DIR = REPO_ROOT / "c_program/src"
 BIN_DIR = REPO_ROOT / "artifacts/afl/compiled_afl"
 SEED_DIR = REPO_ROOT / "artifacts/afl/generated_seeds"
 
-parser = argparse.ArgumentParser(description="Run AFL fuzzing pipeline")
-parser.add_argument(
-    "--num-seeds", type=int, default=10, help="Number of AFL seed inputs to generate"
-)
-parser.add_argument(
-    "--afl-runtime", type=int, default=60, help="Maximum runtime for AFL in seconds"
-)
-args = parser.parse_args()
-NUM_SEEDS = args.num_seeds
-AFL_RUNTIME = args.afl_runtime
-
 load_dotenv(".env")
 
 
@@ -109,4 +98,18 @@ def full_afl_pipeline():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run AFL fuzzing pipeline")
+    parser.add_argument(
+        "--num-seeds",
+        type=int,
+        default=10,
+        help="Number of AFL seed inputs to generate",
+    )
+    parser.add_argument(
+        "--afl-runtime", type=int, default=60, help="Maximum runtime for AFL in seconds"
+    )
+    args = parser.parse_args()
+    NUM_SEEDS = args.num_seeds
+    AFL_RUNTIME = args.afl_runtime
+
     full_afl_pipeline()

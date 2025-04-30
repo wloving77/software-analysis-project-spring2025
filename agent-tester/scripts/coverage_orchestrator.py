@@ -1,26 +1,20 @@
 import os
 import sys
-from pathlib import Path
 import subprocess
 import argparse
 import re
+from pathlib import Path
 from klee.ktest import KTest
+
 
 """ This is more or less the ground truth, this is where the model gets feedback on how fuzzing, symbolic, and raw test generation are performing """
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-parser = argparse.ArgumentParser(description="Orchestrate coverage evaluation")
-parser.add_argument(
-    "--src-dir",
-    type=str,
-    required=True,
-    help="Path to directory containing the C source file",
-)
-args = parser.parse_args()
-SRC_DIR = Path(args.src_dir).resolve()
+C_SRC_DIR = REPO_ROOT / "c_program/src"
 KLEE_OUTPUT_DIR = REPO_ROOT / "artifacts/klee/klee_output"
 AFL_OUTPUT_DIR = REPO_ROOT / "artifacts/afl/output"
 BINARY_PATH = REPO_ROOT / "artifacts/standard_binary/mini_qsort"
+LLM_OUTPUT_DIR = REPO_ROOT / "artifacts/llm-testgen"
 
 GCDA_DIR = REPO_ROOT / "artifacts/coverage/coverage_data"
 GCOV_REPORT_DIR = REPO_ROOT / "artifacts/coverage/coverage_report"
@@ -29,11 +23,16 @@ GCOV_REPORT_DIR = REPO_ROOT / "artifacts/coverage/coverage_report"
 GCDA_DIR.mkdir(parents=True, exist_ok=True)
 GCOV_REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-import os
-from pathlib import Path
-import subprocess
-import re
-from klee.ktest import KTest
+
+def extract_llm_generated_tests(test_case_dir):
+    inputs = []
+    for testcase in test_case_dir.iterdir():
+        if testcase.is_file():
+            try:
+                inputs.append(testcase.read_text(errors="ignore"))
+            except Exception as e:
+                print(f"[!] Could not read {testcase}: {e}")
+    return inputs
 
 
 def extract_all_klee_inputs(root_dir):
@@ -114,9 +113,9 @@ def run_with_input(input_str):
 
 def generate_gcov_report():
     # Find the first .c file in the src directory
-    c_files = list(SRC_DIR.glob("*.c"))
+    c_files = list(C_SRC_DIR.glob("*.c"))
     if not c_files:
-        raise FileNotFoundError(f"No .c file found in {SRC_DIR}")
+        raise FileNotFoundError(f"No .c file found in {C_SRC_DIR}")
     c_file = c_files[0]
 
     base_name = c_file.stem
@@ -143,6 +142,9 @@ def generate_gcov_report():
 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Orchestrate coverage evaluation")
+
     compile_gcov_binary()
     print("[*] Resetting coverage data...")
     reset_coverage_data()
@@ -155,8 +157,12 @@ if __name__ == "__main__":
     afl_inputs = extract_all_afl_inputs(AFL_OUTPUT_DIR)
     print(f"[+] Got {len(afl_inputs)} inputs from AFL")
 
-    print("[*] Replaying inputs...")
-    for input_str in klee_inputs + afl_inputs:
+    print("[*] Extracting LLM Generated inputs...")
+    llm_inputs = extract_llm_generated_tests(LLM_OUTPUT_DIR)
+    print(f"[+] Got {len(llm_inputs)} inputs from LLM")
+
+    print("[*] Replaying All inputs...")
+    for input_str in klee_inputs + afl_inputs + llm_inputs:
         run_with_input(input_str)
 
     print("[*] Generating gcov report...")
