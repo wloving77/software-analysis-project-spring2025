@@ -29,7 +29,9 @@ def read_c_programs_with_filenames(src_dir: str) -> list[tuple[str, str]]:
     return program_files
 
 
-def format_prompt(programs: list[tuple[str, str]], num_seeds: int) -> str:
+def format_prompt(
+    programs: list[tuple[str, str]], num_seeds: int, additional_prompt: str = ""
+) -> str:
     header = f"""
     You are helping fuzz a C program. The codebase consists of several C files listed below.
 
@@ -60,11 +62,15 @@ def format_prompt(programs: list[tuple[str, str]], num_seeds: int) -> str:
 
     final_prompt = header.strip() + "\n\n" + "\n\n".join(program_sections)
 
+    final_prompt += f"\n\n{additional_prompt}"
+
     return final_prompt
 
 
-def prompt_for_seeds(model, programs: list[tuple[str, str]], num_seeds: int) -> list:
-    prompt = format_prompt(programs, num_seeds)
+def prompt_for_seeds(
+    model, programs: list[tuple[str, str]], num_seeds: int, additional_prompt: str
+) -> list:
+    prompt = format_prompt(programs, num_seeds, additional_prompt)
     try:
         response = model.generate_content(prompt)
         return parse_seeds(response.text)
@@ -106,6 +112,13 @@ def main():
         "--num-seeds", type=int, default=3, help="Number of seeds to generate"
     )
 
+    parser.add_argument(
+        "--additional-prompt",
+        type=str,
+        default="",
+        help="Additional Prompt to Fine Tune Generated Seeds",
+    )
+
     args = parser.parse_args()
     src_dir = (ROOT_DIR / args.src_dir).resolve()
     out_dir = (ROOT_DIR / args.out_dir).resolve()
@@ -117,7 +130,7 @@ def main():
     programs = read_c_programs_with_filenames(src_dir)
 
     print(f"[+] Requesting {args.num_seeds} seed inputs...")
-    seeds = prompt_for_seeds(model, programs, args.num_seeds)
+    seeds = prompt_for_seeds(model, programs, args.num_seeds, args.additional_prompt)
 
     if not seeds:
         print("[!] No seeds generated. Exiting.")

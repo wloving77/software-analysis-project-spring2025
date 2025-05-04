@@ -28,7 +28,7 @@ def write_transformed_code(output_path, code):
         f.write(code)
 
 
-def build_prompt(source_code):
+def build_prompt(source_code, additional_prompt=""):
     system_instruction = (
         "You are modifying C code to prepare it for symbolic execution using the KLEE tool.\n"
         "Rewrite the following C program so that all user inputs (via stdin, argv, fgets, etc.) "
@@ -39,8 +39,8 @@ def build_prompt(source_code):
         "It is also important that you only use Klee assumptions for things that make sense to be symbolically tested \n"
         "Avoid file inputs or other external dependencies.\n"
     )
-
-    return f"{system_instruction}\n\n{source_code}"
+    final_prompt = f"{system_instruction}\n\n{source_code}\n\n{additional_prompt}"
+    return final_prompt
 
 
 def extract_clean_c_code(raw_text):
@@ -64,12 +64,19 @@ def main():
         "--outname",
         help="Optional basename for output (default is input name + '_klee')",
     )
+    parser.add_argument(
+        "--additional-prompt",
+        type=str,
+        default="",
+        help="Additional Prompt to Fine Tune Generated Seeds",
+    )
 
     args = parser.parse_args()
 
     model = init_gemini()
     source_code = read_c_source(args.input_file)
-    prompt = build_prompt(source_code)
+    additional_prompt = args.additional_prompt
+    prompt = build_prompt(source_code, additional_prompt)
 
     print("[+] Querying Gemini to rewrite for symbolic execution...")
     response = model.generate_content(prompt)

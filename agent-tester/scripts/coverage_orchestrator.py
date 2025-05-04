@@ -15,9 +15,9 @@ KLEE_OUTPUT_DIR = REPO_ROOT / "artifacts/klee/klee_output"
 AFL_OUTPUT_DIR = REPO_ROOT / "artifacts/afl/output"
 BINARY_PATH = REPO_ROOT / "artifacts/standard_binary/mini_qsort"
 LLM_OUTPUT_DIR = REPO_ROOT / "artifacts/llm-testgen"
-
 GCDA_DIR = REPO_ROOT / "artifacts/coverage/coverage_data"
 GCOV_REPORT_DIR = REPO_ROOT / "artifacts/coverage/coverage_report"
+TEST_CASES_DIR = REPO_ROOT / "artifacts/coverage/test_cases"
 
 # Ensure report directories exist
 GCDA_DIR.mkdir(parents=True, exist_ok=True)
@@ -147,6 +147,32 @@ def generate_gcov_report():
         print(gcov_file.read_text())
 
 
+def save_test_cases(klee_inputs, afl_inputs, llm_inputs):
+    TEST_CASES_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Determine the starting index by counting existing test_case_*.txt files
+    existing_cases = list(TEST_CASES_DIR.glob("test_case_*.txt"))
+    if existing_cases:
+        existing_indices = [
+            int(f.stem.split("_")[-1])
+            for f in existing_cases
+            if f.stem.split("_")[-1].isdigit()
+        ]
+        start_idx = max(existing_indices) + 1 if existing_indices else 0
+    else:
+        start_idx = 0
+
+    all_inputs = klee_inputs + afl_inputs + llm_inputs
+
+    for i, input_str in enumerate(all_inputs):
+        idx = start_idx + i
+        test_case_path = TEST_CASES_DIR / f"test_case_{idx}.txt"
+        try:
+            test_case_path.write_text(input_str)
+        except Exception as e:
+            print(f"[!] Failed to write {test_case_path}: {e}")
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Orchestrate coverage evaluation")
@@ -173,5 +199,8 @@ if __name__ == "__main__":
 
     print("[*] Generating gcov report...")
     generate_gcov_report()
+    save_test_cases(klee_inputs, afl_inputs, llm_inputs)
 
-    print(f"[✔] Done! See coverage report in {GCOV_REPORT_DIR}")
+    print(
+        f"[✔] Done! See coverage report in {GCOV_REPORT_DIR} and all saved test cases in {TEST_CASES_DIR}"
+    )

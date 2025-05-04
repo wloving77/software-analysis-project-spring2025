@@ -19,7 +19,7 @@ def init_gemini():
     return genai.GenerativeModel("gemini-2.0-flash")
 
 
-def generate_tests_with_gemini(num_tests=10):
+def generate_tests_with_gemini(num_tests=10, additional_prompt=""):
     src_dir = ROOT_DIR / "c_program/src"
     artifact_dir = ROOT_DIR / "artifacts/llm-testgen"
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -58,7 +58,7 @@ def generate_tests_with_gemini(num_tests=10):
     """
 
     model = init_gemini()
-    prompt = header + "\n\n" + program_text
+    prompt = header + "\n\n" + program_text + "\n\n" + additional_prompt
 
     response = model.generate_content(prompt)
     test_cases = response.text.strip().split(f"\n{SEED_DELIMITER}\n")
@@ -78,5 +78,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-tests", type=int, default=10, help="Number of test cases to generate"
     )
+    parser.add_argument(
+        "--additional-prompt",
+        type=str,
+        default="",
+        help="Additional Prompt to Fine Tune Generated Tests",
+    )
     args = parser.parse_args()
-    generate_tests_with_gemini(num_tests=args.num_tests)
+    generate_tests_with_gemini(
+        num_tests=args.num_tests, additional_prompt=args.additional_prompt
+    )

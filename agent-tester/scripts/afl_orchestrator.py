@@ -25,6 +25,8 @@ def generate_afl_seeds():
             "scripts/afl/generate_afl_seeds.py",
             "--num-seeds",
             str(NUM_SEEDS),
+            "--additional-prompt",
+            str(ADDITIONAL_PROMPT),
         ],
         cwd=REPO_ROOT,
     )
@@ -106,10 +108,17 @@ if __name__ == "__main__":
         help="Number of AFL seed inputs to generate",
     )
     parser.add_argument(
+        "--additional-prompt",
+        type=str,
+        default="",
+        help="Additional Prompt to Fine Tune Generated Seeds",
+    )
+    parser.add_argument(
         "--afl-runtime", type=int, default=60, help="Maximum runtime for AFL in seconds"
     )
     args = parser.parse_args()
     NUM_SEEDS = args.num_seeds
     AFL_RUNTIME = args.afl_runtime
+    ADDITIONAL_PROMPT = args.additional_prompt
 
     full_afl_pipeline()
