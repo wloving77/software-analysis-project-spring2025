@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-load_dotenv("../.env")
+load_dotenv(ROOT_DIR / ".env")
 
 SEED_DELIMITER = "---"
 
@@ -29,29 +29,48 @@ def read_c_programs_with_filenames(src_dir: str) -> list[tuple[str, str]]:
     return program_files
 
 
-def format_prompt(programs: list[tuple[str, str]], num_seeds: int) -> str:
+def format_prompt(
+    programs: list[tuple[str, str]], num_seeds: int, additional_prompt: str = ""
+) -> str:
     header = f"""
-        You are helping fuzz a C program. The codebase consists of several C files listed below.
+    You are helping fuzz a C program. The codebase consists of several C files listed below.
 
-        Please generate {num_seeds} diverse input strings that may trigger different execution paths or edge cases in the program.
-        Return the seeds as plain text only, each separated by a line with only the delimiter: `{SEED_DELIMITER}`.
-        Do not include explanations or formatting. Just the input strings.
+    Please generate {num_seeds} diverse input strings that may trigger different execution paths or edge cases in the program.
+    - Inputs should be realistic: valid configuration strings, commands, or identifiers.
+    - Avoid empty strings, raw binary, and clearly invalid inputs.
+    - Return only inputs that are likely to be *accepted* by the program and not cause immediate failure.
 
-        C programs:
-        """
+    Return the seeds as plain text only, each separated by a line with only the delimiter: `{SEED_DELIMITER}`.
+    Do not include explanations or formatting. Just the input strings.
+    
+    Example Format: 
+    
+    {SEED_DELIMITER}
+    seed 1
+    {SEED_DELIMITER}
+    seed 2
+    {SEED_DELIMITER}
+
+    Please format individual seeds as the program would require via file input.
+
+    C programs:
+    """
+
     program_sections = []
     for filename, content in programs:
         program_sections.append(f"""{filename}:\n\"\"\"\n{content}\n\"\"\"""")
 
     final_prompt = header.strip() + "\n\n" + "\n\n".join(program_sections)
 
-    # print("\n\n" + final_prompt + "\n\n")
+    final_prompt += f"\n\n{additional_prompt}"
 
     return final_prompt
 
 
-def prompt_for_seeds(model, programs: list[tuple[str, str]], num_seeds: int) -> list:
-    prompt = format_prompt(programs, num_seeds)
+def prompt_for_seeds(
+    model, programs: list[tuple[str, str]], num_seeds: int, additional_prompt: str
+) -> list:
+    prompt = format_prompt(programs, num_seeds, additional_prompt)
     try:
         response = model.generate_content(prompt)
         return parse_seeds(response.text)
@@ -93,6 +112,13 @@ def main():
         "--num-seeds", type=int, default=3, help="Number of seeds to generate"
     )
 
+    parser.add_argument(
+        "--additional-prompt",
+        type=str,
+        default="",
+        help="Additional Prompt to Fine Tune Generated Seeds",
+    )
+
     args = parser.parse_args()
     src_dir = (ROOT_DIR / args.src_dir).resolve()
     out_dir = (ROOT_DIR / args.out_dir).resolve()
@@ -104,7 +130,7 @@ def main():
     programs = read_c_programs_with_filenames(src_dir)
 
     print(f"[+] Requesting {args.num_seeds} seed inputs...")
-    seeds = prompt_for_seeds(model, programs, args.num_seeds)
+    seeds = prompt_for_seeds(model, programs, args.num_seeds, args.additional_prompt)
 
     if not seeds:
         print("[!] No seeds generated. Exiting.")

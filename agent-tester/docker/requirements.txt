@@ -1,3 +1,7 @@
 langchain
-tqdm
 google-generativeai
+langchain-google-genai
+python-dotenv
+matplotlib
+pandas
+tqdm

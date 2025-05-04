@@ -37,7 +37,7 @@ RUN pip3 install -r requirements.txt
 # ------------------------------
 # 4. Set up working directory
 # ------------------------------
-RUN mkdir /workspace
-WORKDIR /workspace
+COPY . /agent-tester
+WORKDIR /agent-tester
 
 CMD ["/bin/bash"]

@@ -2,6 +2,8 @@ import os
 import subprocess
 from pathlib import Path
 from dotenv import load_dotenv
+import argparse
+
 
 load_dotenv(".env")
 
@@ -25,6 +27,8 @@ def rewrite_for_klee(src_path: Path, outname: str):
             str(src_path),
             "--outname",
             outname,
+            "--additional-prompt",
+            str(ADDITIONAL_PROMPT),
         ],
         cwd=REPO_ROOT,
     )
@@ -45,7 +49,7 @@ def run_klee_on_bc(rewrite_name: str):
     )
 
 
-def full_pipeline_for_all():
+def full_klee_pipeline():
     src_files = list(SRC_DIR.glob("*.c"))
     if not src_files:
         print("❌ No .c files found in c_program/src/")
@@ -66,4 +70,16 @@ def full_pipeline_for_all():
 
 
 if __name__ == "__main__":
-    full_pipeline_for_all()
+
+    parser = argparse.ArgumentParser(description="Run AFL fuzzing pipeline")
+    parser.add_argument(
+        "--additional-prompt",
+        type=str,
+        default="",
+        help="Additional Prompt to Fine Tune Rewriting",
+    )
+
+    args = parser.parse_args()
+    ADDITIONAL_PROMPT = args.additional_prompt
+
+    full_klee_pipeline()

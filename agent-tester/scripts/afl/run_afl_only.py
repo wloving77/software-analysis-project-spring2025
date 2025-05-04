@@ -59,7 +59,7 @@ def run_afl(binary_path, input_dir, output_dir, timeout=60, max_runtime=300):
 
     print(f"[>] Executing command: {' '.join(cmd)}")
     try:
-        subprocess.run(cmd, timeout=max_runtime)
+        subprocess.run(cmd, timeout=max_runtime, check=True)
     except subprocess.TimeoutExpired:
         print(f"[!] AFL run exceeded {max_runtime} seconds. Terminating...")
 
