@@ -29,7 +29,7 @@ llm = ChatGoogleGenerativeAI(
 # Define tools (already decorated, no need for Tool.from_function)
 tools = [
     run_afl_pipeline,
-    run_klee_pipeline,
+    # run_klee_pipeline,
     generate_test_cases,
     generate_coverage_report,
 ]
@@ -53,7 +53,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    full_c_program = read_c_programs_with_filenames(f"{ROOT_DIR}/c_program/src")
+    with open(f"{ROOT_DIR}/c_program/src/tcc.c", "r") as f:
+        c_program = f.read()
 
     iteration_results = []
 
@@ -61,44 +62,36 @@ if __name__ == "__main__":
         print(f"\n🧠 Agent Iteration {i+1}/{args.iterations}")
 
         run_prompt = (
-            "You are testing a C binary with the defined tools provided to you. "
-            "Here is the program you are testing:"
-            "\n\n"
-            f"{full_c_program}"
-            "\n\n"
-            "Your goal is to maximize program coverage above all else. "
-            "Utilize the provided tools for that purpose."
-            "\n\n"
-            "Here is some tool information:"
-            "\n"
-            "AFL: Run AFL with specified flags. Example Flags: '--num-seeds 10 --afl-runtime 30 --additional-prompt 'any additional prompting for gemini's seed geenration'"
-            "-- This will generate seeds with AFL and then run AFL with those seeds."
-            "\n"
-            "KLEE: Runs the full KLEE symbolic execution pipeline. Example Flags: '--additional-prompt 'any additional prompting for gemini's klee rewrite for the program under test'"
-            "-- This will rewrite the program for KLEE symbolic execution and then run KLEE."
-            "\n"
-            "Generate Test Cases: Generate test cases using Gemini. Example Flags: '--additional-prompt 'any additional prompting for gemini's test case geenration'"
-            "-- This will generate test cases using Gemini."
-            "\n"
-            "Generate Coverage Report: Generate a coverage report using gcov"
-            "-- This will generate a coverage report using gcov by combining all of relevant generated test cases from all of the previous tools, use this as a final step check."
-            "\n\n"
-            "\n\n"
-            "If flags were not mentioned for a tool, the tool has no flags."
-            "Please modify the flags as you see fit. For example, if you want to run AFL, Klee, or Test Case Generation with different flags, simply modify the flags in the input string."
-            "Be sure to modify the flags to explore different behavior, longer afl runtimes and more test cases etc."
-            "Always use all of the tools, even if you have results from previous iterations."
+            "You are testing a C binary with the defined tools provided to you.\n"
+            "Here is the program you are testing:\n\n" + c_program + "\n\n"
+            "Your goal is to maximize program coverage above all else.\n"
+            "Utilize the provided tools for that purpose.\n\n"
+            "Here is some tool information:\n\n"
+            "Generate AFL Seeds and Run AFL: Run AFL with generated seeds. Example Flags:\n"
+            "--num-seeds 10 --afl-runtime 30 --additional-prompt 'any additional prompting for seed generation'\n"
+            "-- This will generate seeds with AFL and then run AFL with those seeds for the specified runtime.\n"
+            "-- You can run AFL for up to 5 minutes which is an afl-runtime of 300 seconds.\n"
+            "-- Be sure to add any additional prompting for seed generation to the --additional-prompt flag.\n\n"
+            "LLM Generated Test Cases: Generate test cases using Gemini. Example Flags:\n"
+            "--num-tests 10 --additional-prompt 'any additional prompting for test case generation'\n"
+            "-- These test cases will only be used upon coverage testing with the coverage test tool.\n"
+            "-- Be sure to add any additional prompting for test case generation to the --additional-prompt flag.\n\n"
+            "Generate Coverage Report: Generate a coverage report using gcov\n"
+            "-- This will generate a coverage report using gcov by combining all relevant generated test cases from both of the previous tools.\n"
+            "-- Use this as a final step check.\n\n"
+            "If flags were not mentioned for a tool, the tool has no flags.\n"
+            "The additional-prompt flag is simply appending whatever you add to what the model attempts to generate. These generated tests are simply .c files, request complexity and specific attributes about those c files. \n"
+            "Always use all of the tools in each iteration, even if you believe some may be redundant.\n"
+            "DO NOT INSTRUCT THE MODEL TO USE FLAGS, THE MODEL ONLY GENERATES STATIC TEXT AND IS RUNNING NOTHING.\n"
         )
+
         if i > 0:
             run_prompt += (
                 "\n\n"
                 f"The results of the previous iteration: {iteration_results[i-1]}"
+                "\n\n"
             )
 
-        print(run_prompt)
         result = agent.run(run_prompt)
         print(result)
         iteration_results.append(result)
-
-    print("\n\n")
-    print("\n".join(iteration_results))

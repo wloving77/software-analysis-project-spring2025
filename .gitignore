@@ -5,3 +5,4 @@ __pycache__/
 *.o
 .env
 /.venv/
+tcc_source

@@ -35,13 +35,12 @@ def format_prompt(
     header = f"""
     You are helping fuzz a C program. The codebase consists of several C files listed below.
 
-    Please generate {num_seeds} diverse input strings that may trigger different execution paths or edge cases in the program.
-    - Inputs should be realistic: valid configuration strings, commands, or identifiers.
-    - Avoid empty strings, raw binary, and clearly invalid inputs.
-    - Return only inputs that are likely to be *accepted* by the program and not cause immediate failure.
+    Please generate {num_seeds} diverse inputs that may trigger different execution paths or edge cases in the program.
+    - Inputs should be realistic for the program under test
+    - Return only inputs that will be *accepted* by the program via CLI file input.
 
     Return the seeds as plain text only, each separated by a line with only the delimiter: `{SEED_DELIMITER}`.
-    Do not include explanations or formatting. Just the input strings.
+    Do not include explanations or formatting. Just the text to be put in files.
     
     Example Format: 
     
@@ -58,7 +57,8 @@ def format_prompt(
 
     program_sections = []
     for filename, content in programs:
-        program_sections.append(f"""{filename}:\n\"\"\"\n{content}\n\"\"\"""")
+        if filename == "tcc.c":
+            program_sections.append(f"""{filename}:\n\"\"\"\n{content}\n\"\"\"""")
 
     final_prompt = header.strip() + "\n\n" + "\n\n".join(program_sections)
 
@@ -92,8 +92,8 @@ def save_seeds(seeds: list, output_dir: str):
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     for i, seed in enumerate(seeds, start=1):
-        with open(output_path / f"seed{i}.txt", "w") as f:
-            f.write(seed)
+        with open(output_path / f"seed{i}.c", "w") as f:
+            f.write(seed.strip("```"))
 
 
 def main():

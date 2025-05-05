@@ -13,8 +13,8 @@ def run_afl_pipeline(input: str) -> str:
     import shlex
 
     input = input.strip()
-    if not input:
-        return "No flags provided. Example: '--num-seeds 10 --afl-runtime 30'"
+    # if not input:
+    #     return "No flags provided. Example: '--num-seeds 10 --afl-runtime 30'"
 
     try:
         flags = shlex.split(input)
