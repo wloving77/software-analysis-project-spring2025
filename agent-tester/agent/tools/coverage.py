@@ -15,10 +15,11 @@ def generate_coverage_report(input: str) -> str:
 
     try:
         flags = shlex.split(input)
-        subprocess.run(
+        result = subprocess.run(
             ["python3", f"{REPO_ROOT}/scripts/coverage_orchestrator.py", *flags],
             check=True,
+            capture_output=True,
         )
-        return f"Coverage Report Generated Successfully with flags: {input}"
+        return f"Coverage Report Generated Successfully with flags: {input} \n Output: {result.stdout}"
     except Exception as e:
         return f"Coverage Generation Failed: {str(e)}"

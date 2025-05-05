@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 from klee.ktest import KTest
 
+from afl.generate_afl_seeds import read_c_programs_with_filenames
+
 
 """ This is more or less the ground truth, this is where the model gets feedback on how fuzzing, symbolic, and raw test generation are performing """
 
@@ -13,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 C_SRC_DIR = REPO_ROOT / "c_program/src"
 KLEE_OUTPUT_DIR = REPO_ROOT / "artifacts/klee/klee_output"
 AFL_OUTPUT_DIR = REPO_ROOT / "artifacts/afl/output"
-BINARY_PATH = REPO_ROOT / "artifacts/standard_binary/mini_qsort"
+BINARY_PATH = REPO_ROOT / "artifacts/standard_binary/tcc"
 LLM_OUTPUT_DIR = REPO_ROOT / "artifacts/llm-testgen"
 GCDA_DIR = REPO_ROOT / "artifacts/coverage/coverage_data"
 GCOV_REPORT_DIR = REPO_ROOT / "artifacts/coverage/coverage_report"
@@ -22,6 +24,16 @@ TEST_CASES_DIR = REPO_ROOT / "artifacts/coverage/test_cases"
 # Ensure report directories exist
 GCDA_DIR.mkdir(parents=True, exist_ok=True)
 GCOV_REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def extract_afl_generated_tests(seed_dir):
+    inputs = []
+    for testcase in Path(seed_dir).glob("*"):
+        try:
+            inputs.append(testcase.read_text(errors="ignore"))
+        except Exception as e:
+            print(f"[!] Could not read {testcase}: {e}")
+    return inputs
 
 
 def extract_llm_generated_tests(test_case_dir):
@@ -94,32 +106,44 @@ def reset_coverage_data():
 
 
 def run_with_input(input_str):
-    input_file = REPO_ROOT / "temp_input.txt"
+    input_file = REPO_ROOT / "temp_input.c"  # Use .c to match expectations
     input_file.write_text(input_str)
 
     try:
-        subprocess.run(
-            [str(BINARY_PATH), str(input_file)],
+        result = subprocess.run(
+            [
+                str(BINARY_PATH),
+                "-c",
+                str(input_file),
+                "-I",
+                str(REPO_ROOT / "c_program" / "include"),
+                "-I",
+                str("/usr/include"),
+                "-I",
+                str("/usr/lib/gcc/x86_64-linux-gnu/11/include"),
+            ],
             check=True,
             timeout=3,
-            stdout=subprocess.DEVNULL,  # suppress stdout
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=True,
         )
+        # if result.stderr:
+        #     print("[stderr]", result.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"[!] Binary exited non-zero: {e}")
+        # print(f"[!] Binary exited non-zero: {e}")
+        pass
     except subprocess.TimeoutExpired:
-        print("[!] Execution timed out")
+        # print("[!] Execution timed out")
+        pass
     finally:
         input_file.unlink(missing_ok=True)
 
 
 def generate_gcov_report():
-    # Find the first .c file in the src directory
-    c_files = list(C_SRC_DIR.glob("*.c"))
-    if not c_files:
-        raise FileNotFoundError(f"No .c file found in {C_SRC_DIR}")
-    c_file = c_files[0]
-
-    base_name = c_file.stem
+    # Use hardcoded reference to tcc.c
+    c_files = read_c_programs_with_filenames(C_SRC_DIR)
+    base_name = "tcc"
 
     # Ensure .gcno is present in coverage_data
     original_gcno = BINARY_PATH.parent / f"{base_name}.gcno"
@@ -134,24 +158,44 @@ def generate_gcov_report():
         dest_gcda.write_bytes(original_gcda.read_bytes())
 
     # Copy source file into report directory so gcov can annotate it
-    copied_src = GCOV_REPORT_DIR / "src" / c_file.name
-    copied_src.parent.mkdir(parents=True, exist_ok=True)
-    if not copied_src.exists():
-        copied_src.write_bytes(c_file.read_bytes())
+    for filename, content in c_files:
+        copied_src = GCOV_REPORT_DIR / "src" / filename
+        copied_src.parent.mkdir(parents=True, exist_ok=True)
+        copied_src.write_text(content)
 
-    subprocess.run(["gcov", "-o", str(GCDA_DIR), str(c_file)], cwd=GCOV_REPORT_DIR)
+    result = subprocess.run(
+        ["gcov", "-o", str(GCDA_DIR), str(base_name)],
+        cwd=GCOV_REPORT_DIR,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    results_dir = REPO_ROOT / "artifacts/final-results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    existing_files = list(results_dir.glob("results*.txt"))
+    indices = [
+        int(f.stem.replace("results", ""))
+        for f in existing_files
+        if f.stem.replace("results", "").isdigit()
+    ]
+    new_index = max(indices) + 1 if indices else 0
+    new_results_file = results_dir / f"results{new_index}.txt"
+    new_results_file.write_text(result.stdout)
+    print(result.stdout)
 
     # Print contents of the generated .gcov file
-    for gcov_file in GCOV_REPORT_DIR.glob("*.gcov"):
-        print(f"\n[GCOV] Contents of {gcov_file.name}:\n")
-        print(gcov_file.read_text())
+    # for gcov_file in GCOV_REPORT_DIR.glob("*.gcov"):
+    #     pass
+    #     print(f"\n[GCOV] Contents of {gcov_file.name}:\n")
+    #     print(gcov_file.read_text())
 
 
 def save_test_cases(klee_inputs, afl_inputs, llm_inputs):
     TEST_CASES_DIR.mkdir(parents=True, exist_ok=True)
 
     # Determine the starting index by counting existing test_case_*.txt files
-    existing_cases = list(TEST_CASES_DIR.glob("test_case_*.txt"))
+    existing_cases = list(TEST_CASES_DIR.glob("test_case_*.c"))
     if existing_cases:
         existing_indices = [
             int(f.stem.split("_")[-1])
@@ -166,7 +210,7 @@ def save_test_cases(klee_inputs, afl_inputs, llm_inputs):
 
     for i, input_str in enumerate(all_inputs):
         idx = start_idx + i
-        test_case_path = TEST_CASES_DIR / f"test_case_{idx}.txt"
+        test_case_path = TEST_CASES_DIR / f"test_case_{idx}.c"
         try:
             test_case_path.write_text(input_str)
         except Exception as e:
@@ -193,13 +237,25 @@ if __name__ == "__main__":
     llm_inputs = extract_llm_generated_tests(LLM_OUTPUT_DIR)
     print(f"[+] Got {len(llm_inputs)} inputs from LLM")
 
-    print("[*] Replaying All inputs...")
-    for input_str in klee_inputs + afl_inputs + llm_inputs:
-        run_with_input(input_str)
+    print("[*] Extracting AFL generated seeds...")
+    afl_generated_inputs = extract_afl_generated_tests(
+        REPO_ROOT / "artifacts/afl/generated_seeds"
+    )
+    print(f"[+] Got {len(afl_generated_inputs)} generated AFL inputs")
+
+    print("[*] Saving test cases...")
+    save_test_cases(klee_inputs, afl_inputs + afl_generated_inputs, llm_inputs)
+
+    print("[*] Replaying saved test cases...")
+    for test_case_path in sorted(TEST_CASES_DIR.glob("test_case_*.c")):
+        try:
+            input_str = test_case_path.read_text()
+            run_with_input(input_str)
+        except Exception as e:
+            print(f"[!] Failed to replay {test_case_path}: {e}")
 
     print("[*] Generating gcov report...")
     generate_gcov_report()
-    save_test_cases(klee_inputs, afl_inputs, llm_inputs)
 
     print(
         f"[✔] Done! See coverage report in {GCOV_REPORT_DIR} and all saved test cases in {TEST_CASES_DIR}"

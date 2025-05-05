@@ -13,14 +13,16 @@ def run_afl_pipeline(input: str) -> str:
     import shlex
 
     input = input.strip()
-    if not input:
-        return "No flags provided. Example: '--num-seeds 10 --afl-runtime 30'"
+    # if not input:
+    #     return "No flags provided. Example: '--num-seeds 10 --afl-runtime 30'"
 
     try:
         flags = shlex.split(input)
-        subprocess.run(
-            ["python3", f"{REPO_ROOT}/scripts/afl_orchestrator.py", *flags], check=True
+        result = subprocess.run(
+            ["python3", f"{REPO_ROOT}/scripts/afl_orchestrator.py", *flags],
+            check=True,
+            capture_output=True,
         )
-        return f"AFL pipeline completed with flags: {input}"
+        return f"AFL pipeline completed with flags: {input}, output: {result.stdout}"
     except subprocess.CalledProcessError as e:
         return f"AFL pipeline failed: {e}"
