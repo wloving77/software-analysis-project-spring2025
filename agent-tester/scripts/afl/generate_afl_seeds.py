@@ -62,7 +62,9 @@ def format_prompt(
 
     final_prompt = header.strip() + "\n\n" + "\n\n".join(program_sections)
 
-    final_prompt += f"\n\n{additional_prompt}"
+    final_prompt += (
+        f"Additional Instructions to Follow Closely: \n\n{additional_prompt}"
+    )
 
     return final_prompt
 

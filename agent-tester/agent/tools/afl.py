@@ -18,9 +18,11 @@ def run_afl_pipeline(input: str) -> str:
 
     try:
         flags = shlex.split(input)
-        subprocess.run(
-            ["python3", f"{REPO_ROOT}/scripts/afl_orchestrator.py", *flags], check=True
+        result = subprocess.run(
+            ["python3", f"{REPO_ROOT}/scripts/afl_orchestrator.py", *flags],
+            check=True,
+            capture_output=True,
         )
-        return f"AFL pipeline completed with flags: {input}"
+        return f"AFL pipeline completed with flags: {input}, output: {result.stdout}"
     except subprocess.CalledProcessError as e:
         return f"AFL pipeline failed: {e}"

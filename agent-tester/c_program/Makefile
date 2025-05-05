@@ -68,5 +68,4 @@ clean:
 	rm -f $(LLVM_DIR)/*.bc \
 	      $(AFL_DIR)/* \
 	      $(BIN_DIR)/* \
-	      $(REWRITE_DIR)/* \
-	      test_input.txt
+	      $(REWRITE_DIR)/* 

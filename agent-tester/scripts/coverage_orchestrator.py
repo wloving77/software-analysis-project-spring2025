@@ -124,15 +124,18 @@ def run_with_input(input_str):
             ],
             check=True,
             timeout=3,
-            capture_output=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             text=True,
         )
-        if result.stderr:
-            print("[stderr]", result.stderr)
+        # if result.stderr:
+        #     print("[stderr]", result.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"[!] Binary exited non-zero: {e}")
+        # print(f"[!] Binary exited non-zero: {e}")
+        pass
     except subprocess.TimeoutExpired:
-        print("[!] Execution timed out")
+        # print("[!] Execution timed out")
+        pass
     finally:
         input_file.unlink(missing_ok=True)
 
@@ -179,12 +182,13 @@ def generate_gcov_report():
     new_index = max(indices) + 1 if indices else 0
     new_results_file = results_dir / f"results{new_index}.txt"
     new_results_file.write_text(result.stdout)
+    print(result.stdout)
 
     # Print contents of the generated .gcov file
-    for gcov_file in GCOV_REPORT_DIR.glob("*.gcov"):
-        pass
-        print(f"\n[GCOV] Contents of {gcov_file.name}:\n")
-        print(gcov_file.read_text())
+    # for gcov_file in GCOV_REPORT_DIR.glob("*.gcov"):
+    #     pass
+    #     print(f"\n[GCOV] Contents of {gcov_file.name}:\n")
+    #     print(gcov_file.read_text())
 
 
 def save_test_cases(klee_inputs, afl_inputs, llm_inputs):
@@ -239,13 +243,19 @@ if __name__ == "__main__":
     )
     print(f"[+] Got {len(afl_generated_inputs)} generated AFL inputs")
 
-    print("[*] Replaying All inputs...")
-    for input_str in klee_inputs + afl_inputs + llm_inputs + afl_generated_inputs:
-        run_with_input(input_str)
+    print("[*] Saving test cases...")
+    save_test_cases(klee_inputs, afl_inputs + afl_generated_inputs, llm_inputs)
+
+    print("[*] Replaying saved test cases...")
+    for test_case_path in sorted(TEST_CASES_DIR.glob("test_case_*.c")):
+        try:
+            input_str = test_case_path.read_text()
+            run_with_input(input_str)
+        except Exception as e:
+            print(f"[!] Failed to replay {test_case_path}: {e}")
 
     print("[*] Generating gcov report...")
     generate_gcov_report()
-    save_test_cases(klee_inputs, afl_inputs + afl_generated_inputs, llm_inputs)
 
     print(
         f"[✔] Done! See coverage report in {GCOV_REPORT_DIR} and all saved test cases in {TEST_CASES_DIR}"
