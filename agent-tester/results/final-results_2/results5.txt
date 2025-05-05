@@ -1,0 +1,53 @@
+File 'src/tcc.c'
+Lines executed:55.24% of 143
+Creating 'tcc.c.gcov'
+
+File 'src/tcctools.c'
+Lines executed:0.00% of 251
+Creating 'tcctools.c.gcov'
+
+File 'src/libtcc.c'
+Lines executed:38.60% of 912
+Creating 'libtcc.c.gcov'
+
+File 'src/i386-asm.c'
+Lines executed:38.99% of 908
+Creating 'i386-asm.c.gcov'
+
+File 'src/x86_64-link.c'
+Lines executed:0.00% of 177
+Creating 'x86_64-link.c.gcov'
+
+File 'src/x86_64-gen.c'
+Lines executed:65.56% of 1141
+Creating 'x86_64-gen.c.gcov'
+
+File 'src/tccrun.c'
+Lines executed:2.22% of 225
+Creating 'tccrun.c.gcov'
+
+File 'src/tccelf.c'
+Lines executed:18.59% of 2001
+Creating 'tccelf.c.gcov'
+
+File 'src/tccasm.c'
+Lines executed:22.36% of 823
+Creating 'tccasm.c.gcov'
+
+File 'src/tccdbg.c'
+Lines executed:9.02% of 1241
+Creating 'tccdbg.c.gcov'
+
+File 'src/tccgen.c'
+Lines executed:59.08% of 4893
+Creating 'tccgen.c.gcov'
+
+File 'src/tccpp.c'
+Lines executed:69.49% of 2327
+Creating 'tccpp.c.gcov'
+
+File 'include/tcc.h'
+Lines executed:43.40% of 53
+Creating 'tcc.h.gcov'
+
+Lines executed:44.63% of 15095
