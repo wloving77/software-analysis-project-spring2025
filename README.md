@@ -17,7 +17,6 @@ The key goals of the project are:
 ├── agent-tester
 │   ├── agent
 │   │   ├── agent_runner.py
-│   │   ├── temp_input.o
 │   │   └── tools
 │   ├── artifacts
 │   │   ├── afl
@@ -29,7 +28,6 @@ The key goals of the project are:
 │   │   ├── include
 │   │   ├── Makefile
 │   │   ├── src
-│   │   └── tcc.gcno
 │   ├── docker
 │   │   ├── build_and_run_container_apple_silicon.sh
 │   │   ├── build_and_run_container.sh
