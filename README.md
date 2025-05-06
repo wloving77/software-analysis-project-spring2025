@@ -14,35 +14,46 @@ The key goals of the project are:
 ## 📁 Project Structure
 
 ```
+├── agent-tester
+│   ├── agent
+│   │   ├── agent_runner.py
+│   │   ├── temp_input.o
+│   │   └── tools
+│   ├── artifacts
+│   │   ├── afl
+│   │   ├── coverage
+│   │   ├── final-results
+│   │   ├── llm-testgen
+│   │   └── standard_binary
+│   ├── c_program
+│   │   ├── include
+│   │   ├── Makefile
+│   │   ├── src
+│   │   ├── tcc_source
+│   │   └── tcc.gcno
+│   ├── docker
+│   │   ├── build_and_run_container_apple_silicon.sh
+│   │   ├── build_and_run_container.sh
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── README.md
+│   ├── results
+│   │   ├── final-results_1
+│   │   ├── final-results_2
+│   │   └── sandbox.ipynb
+│   └── scripts
+│       ├── __init__.py
+│       ├── __pycache__
+│       ├── afl
+│       ├── afl_orchestrator.py
+│       ├── coverage_orchestrator.py
+│       ├── klee
+│       ├── klee_orchestrator.py
+│       └── testgen_orchestrator.py
 ├── LICENSE
-├── README.md
-└── agent-tester
-    ├── README.md
-    ├── agent
-    │   ├── agent.py
-    │   ├── prompt_templates.py
-    │   ├── tool_wrappers.py
-    │   └── tools
-    │       ├── afl.py
-    │       ├── code_loader.py
-    │       ├── klee.py
-    │       ├── runner.py
-    │       └── testgen.py
-    ├── c_program
-    │   ├── Makefile
-    │   ├── include
-    │   └── src
-    │       └── proof_of_concept.c
-    ├── docker
-    │   ├── Dockerfile
-    │   ├── build_and_run_container.sh
-    │   └── build_and_run_container_native.sh
-    ├── requirements.txt
-    └── scripts
-        ├── afl
-        │   └── run_afl_only.py
-        ├── klee
-        │   ├── generate_klee_rewrite.py
-        │   └── run_klee_only.py
-        └── klee_orchestrator.py
+└── README.md
 ```
+
+
+# Setup Guide 
+- See README in `./agent-tester`
