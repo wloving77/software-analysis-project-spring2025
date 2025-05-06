@@ -29,7 +29,6 @@ The key goals of the project are:
 │   │   ├── include
 │   │   ├── Makefile
 │   │   ├── src
-│   │   ├── tcc_source
 │   │   └── tcc.gcno
 │   ├── docker
 │   │   ├── build_and_run_container_apple_silicon.sh
